@@ -85,6 +85,8 @@ public class JitCodegenProvider(ILogger logger)
             string dotnetPublishArgs =
                 $"publish {tfmPart} -r {runtimeId} -c Release -o \"{resultOutDir}\" --self-contained true {platformPart} /p:PublishTrimmed=false /p:PublishSingleFile=false /p:CustomBeforeDirectoryBuildProps=\"{tmpProps}\" /p:WarningLevel=0 /p:TreatWarningsAsErrors=false -v:q";
 
+            logger.LogDebug("Running: {0} {1}", dotnetCliExePath, dotnetPublishArgs);
+
             publishResult = await ProcessUtils.RunProcessAsync(dotnetCliExePath, dotnetPublishArgs, null, projectDirPath,
                 LogProcessOutput, cancellationToken: cancellationToken);
         }
@@ -118,6 +120,8 @@ public class JitCodegenProvider(ILogger logger)
                 dotnetBuildArgs += " --no-restore --no-dependencies --nologo";
                 fasterBuildEnvVars["DOTNET_MULTILEVEL_LOOKUP"] = "0";
             }
+
+            logger.LogDebug("Running: {0} {1}", dotnetCliExePath, dotnetBuildArgs);
 
             publishResult = await ProcessUtils.RunProcessAsync(dotnetCliExePath, dotnetBuildArgs, fasterBuildEnvVars,
                 projectDirPath, LogProcessOutput, cancellationToken: cancellationToken);
@@ -315,7 +319,8 @@ public class JitCodegenProvider(ILogger logger)
                     command += $" -r: \"{Path.Combine(runtimePackPath.Value, "*.dll")}\" -r: \"{corelib}\" ";
                 }
                 
-                logger.LogDebug("Executing crossgen2...");
+                logger.LogInformation("Executing crossgen2...");
+                logger.LogDebug("Running: {0} {1}", executable, command);
                 logger.LogTrace($"target: {target}\n{tfm}\n{configuration}");
             }
             else if (configuration.NativeAotIsSelected && configuration.UseCustomRuntime)
@@ -362,7 +367,8 @@ public class JitCodegenProvider(ILogger logger)
                     //var corelib = Path.Combine(clrCheckedFilesDir, "System.Private.CoreLib.dll");
                     //command += $" -r: \"{runtimePackPath}\\*.dll\" -r: \"{corelib}\" ";
                 }
-                logger.LogDebug("Executing ILC... Make sure your method is not inlined and is reachable as NativeAOT runs IL Link. It might take some time...");
+                logger.LogInformation("Executing ILC... Make sure your method is not inlined and is reachable as NativeAOT runs IL Link. It might take some time...");
+                logger.LogDebug("Running: {0} {1}", executable, command);
             }
             else if (configuration.IsNonCustomNativeAotMode())
             {
@@ -417,6 +423,8 @@ public class JitCodegenProvider(ILogger logger)
                     $"publish {tfmPart} -r {runtimeId} -c Release" +
                     $" {platformPart} /p:PublishAot=true /p:CustomBeforeDirectoryBuildProps=\"{tmpProps}\"" +
                     $" /p:WarningLevel=0 /p:TreatWarningsAsErrors=false -v:q";
+
+                logger.LogDebug("Running: {0} {1}", dotnetCliExePath, dotnetPublishArgs);
 
                 var publishResult = await ProcessUtils.RunProcessAsync(dotnetCliExePath, dotnetPublishArgs, null,
                     projectContext.ProjectDirectory, LogProcessOutput, cancellationToken: cancellationToken);
