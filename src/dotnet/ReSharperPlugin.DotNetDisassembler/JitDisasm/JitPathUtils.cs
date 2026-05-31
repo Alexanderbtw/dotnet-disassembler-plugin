@@ -7,12 +7,14 @@ namespace ReSharperPlugin.DotNetDisassembler.JitDisasm;
 
 public class JitPathUtils
 {
-    private static string OsPrefix =>
+    private static readonly string OsPrefix =
         RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "osx" :
         RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "linux" : "windows";
 
-    public static string CoreRunExecutable =>
+    private static readonly string CoreRunExecutableName =
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "CoreRun.exe" : "corerun";
+
+    public static string CoreRunExecutable => CoreRunExecutableName;
 
     public static Result<string> GetPathToRuntimePack(string pathToLocalCoreClr, string arch)
     {

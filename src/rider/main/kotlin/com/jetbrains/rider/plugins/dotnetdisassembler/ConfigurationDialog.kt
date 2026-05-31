@@ -5,6 +5,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
@@ -88,6 +89,8 @@ class ConfigurationDialog(private val project: Project) : DialogWrapper(project)
 
         super.doOKAction()
     }
+
+    override fun doValidate(): ValidationInfo? = runtimePanel.validate()
 
     override fun doCancelAction() {
         logger.debug("Cancelling configuration dialog")
@@ -213,6 +216,9 @@ class ConfigurationDialog(private val project: Project) : DialogWrapper(project)
         )
         private val customRuntimeHelp = ContextHelpLabel.create(AsmViewerBundle.message("runtime.custom.runtime.help"))
         private val pathField = TextFieldWithBrowseButton().apply {
+            val fieldSize = Dimension(JBUI.scale(360), preferredSize.height)
+            preferredSize = fieldSize
+            maximumSize = fieldSize
             text = config.pathToLocalCoreClr ?: ""
             isEnabled = config.useCustomRuntime
             addBrowseFolderListener(
@@ -233,13 +239,30 @@ class ConfigurationDialog(private val project: Project) : DialogWrapper(project)
         val useCustomRuntime: Boolean get() = useCustomRuntimeCheckbox.isSelected
         val pathToLocalCoreClr: String? get() = pathField.text.takeIf { it.isNotBlank() && useCustomRuntime }
 
+        fun validate(): ValidationInfo? {
+            if (useCustomRuntime && pathField.text.isBlank()) {
+                return ValidationInfo(AsmViewerBundle.message("runtime.custom.runtime.path.required"), pathField)
+            }
+
+            return null
+        }
+
         fun addToForm(formBuilder: FormBuilder) {
             formBuilder
                 .addComponent(runAppModeCheckbox.withHelp(runAppModeHelp))
                 .addLabeledComponent(AsmViewerBundle.message("runtime.timeout.label"), timeoutSpinner.withHelp(timeoutHelp))
                 .addVerticalGap(10)
                 .addComponent(useCustomRuntimeCheckbox.withHelp(customRuntimeHelp))
-                .addLabeledComponent(AsmViewerBundle.message("runtime.custom.runtime.path.label"), pathField)
+                .addComponent(createIndentedPathField())
+        }
+
+        private fun createIndentedPathField() = JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.X_AXIS)
+            border = JBUI.Borders.emptyLeft(20)
+            add(JBLabel(AsmViewerBundle.message("runtime.custom.runtime.path.label")))
+            add(Box.createHorizontalStrut(JBUI.scale(6)))
+            add(pathField)
+            add(Box.createHorizontalGlue())
         }
     }
 }
